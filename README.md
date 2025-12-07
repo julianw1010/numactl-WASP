@@ -1,8 +1,8 @@
 # numactl-WASP
 
-Version 2.0.10-wasp
-Copyright (C) 2018-2019 VMware, Inc.
-Copyright (C) 2025 Julian Waciewski
+Version 2.0.10-wasp\
+Copyright (C) 2018-2019 VMware, Inc.\
+Copyright (C) 2025 Julian Waciewski\
 SPDX-License-Identifier: LGPL-2.1-only
 
 This project contains a modified [`numactl`](https://github.com/numactl/numactl) 
