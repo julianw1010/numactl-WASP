@@ -18,9 +18,9 @@
 .\" 
 .\" Formatted or processed versions of this manual, if unaccompanied by
 .\" the source, must acknowledge the copyright and authors of this work.
-.TH NUMACTL 8 "Mar 2019" "VMWare, Inc." "Linux Administrator's Manual"
+.TH NUMACTL 8 "2025" "WASP" "Linux Administrator's Manual"
 .SH NAME
-numactl \- Control NUMA policy for processes or shared memory with Mitosis Linux
+numactl \- Control NUMA policy for processes or shared memory with WASP Linux
 .SH SYNOPSIS
 .B numactl
 [
@@ -31,6 +31,8 @@ numactl \- Control NUMA policy for processes or shared memory with Mitosis Linux
 .B \-\-preferred node 
 ] [
 .B \-\-pgtablerepl nodes
+] [
+.B \-\-pgtablerepl-node node
 ] [
 .B \-\-membind nodes
 ] [ 
@@ -129,6 +131,14 @@ Set a page-table replication policy.
 .I nodes.
 When memory cannot be allocated on the current replication node target fall back
 to other nodes.
+.TP
+.B \-\-pgtablerepl-node=node, \-R node
+Set the preferred NUMA node for page table access (WASP feature).
+Use 
+.I -1
+for automatic selection (use local node), or specify a node number
+to force page table accesses to use that node's replica.
+This is a per-thread setting.
 .TP
 .B \-\-membind=nodes, \-m nodes
 Only allocate memory from nodes.  Allocation will fail when there
@@ -283,6 +293,9 @@ Run big database with its memory interleaved on all CPUs.
 numactl \-\-pgtablerepl=all bigdatabase arguments
 Run big database with page-table replication on all NUMA nodes.
 
+numactl \-\-pgtablerepl=all \-\-pgtablerepl-node=0 bigdatabase arguments
+Run big database with page-table replication on all NUMA nodes, forcing page table access to node 0.
+
 numactl \-\-cpunodebind=0 \-\-membind=0,1 process
 Run process on node 0 with memory allocated on node 0 and 1.
 
@@ -344,6 +357,7 @@ for NUMA memory hit statistics.
 .SH COPYRIGHT
 Copyright 2002,2004 Andi Kleen, SuSE Labs.
 Copyright 2018-2019 Reto Achermann, VMware, Inc.
+Copyright 2025 Julian Waciewski.
 numactl and the demo programs are under the GNU General Public License, v.2
 
 .SH SEE ALSO

@@ -1,5 +1,6 @@
 /* Copyright (C) 2003,2004 Andi Kleen, SuSE Labs.
    Copyright (C) 2018-2019 VMware, Inc.
+   Copyright (C) 2025 Julian Waciewski.
    SPDX-License-Identifier: GPL-2.0
 
    libnuma is free software; you can redistribute it and/or
@@ -182,6 +183,16 @@ void numa_set_pgtable_replication_mask(struct bitmask *nodemask);
 
 /* Return the current page table replication mask */
 struct bitmask *numa_get_pgtable_replication_mask(void);
+
+/* Set the preferred NUMA node for page table access (WASP)
+   node=-1 for auto (local node), node>=0 for specific node
+   pid=0 for self, pid>0 for another process */
+int numa_set_pgtable_replication_node(int node, pid_t pid);
+
+/* Get the preferred NUMA node for page table access (WASP)
+   Returns -1 for auto, or the forced node number
+   pid=0 for self, pid>0 for another process */
+int numa_get_pgtable_replication_node(pid_t pid);
 
 /* allocate a bitmask big enough for all nodes */
 struct bitmask *numa_allocate_nodemask(void);

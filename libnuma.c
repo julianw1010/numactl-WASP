@@ -2,6 +2,7 @@
    Copyright (C) 2003,2004,2005,2008 Andi Kleen,SuSE Labs and
    Cliff Wickman,SGI.
    Copyright (C) 2018-2019 VMware, Inc.
+   Copyright (C) 2025 Julian Waciewski.
    SPDX-License-Identifier: GPL-2.0
 
    libnuma is free software; you can redistribute it and/or
@@ -304,16 +305,15 @@ static void getpol(int *oldpolicy, struct bitmask *bmp)
 		numa_error("get_mempolicy");
 }
 
-static void setpgreplpol(int policy, struct bitmask *bmp)
+static unsigned long bitmask_to_ulong(struct bitmask *bmp)
 {
-	if (set_pgreplpolicy(policy, bmp->maskp, bmp->size + 1) < 0)
-		numa_error("set_pgreplpol");
-}
-
-static void getpgreplpol(int *oldpolicy, struct bitmask *bmp)
-{
-	if (get_pgreplpolicy(oldpolicy, bmp->maskp, bmp->size + 1, 0, 0) < 0)
-		numa_error("get_pgreplpol");
+	unsigned long mask = 0;
+	unsigned int i;
+	for (i = 0; i < bmp->size && i < sizeof(unsigned long) * 8; i++) {
+		if (numa_bitmask_isbitset(bmp, i))
+			mask |= (1UL << i);
+	}
+	return mask;
 }
 
 static void dombind(void *mem, size_t size, int pol, struct bitmask *bmp)
@@ -1015,23 +1015,66 @@ __asm__(".symver numa_get_interleave_mask_v2,numa_get_interleave_mask@@libnuma_1
 void
 numa_set_pgtable_replication_mask(struct bitmask *bmp)
 {
-	if (numa_bitmask_equal(bmp, numa_no_nodes_ptr))
-		setpgreplpol(MPOL_DEFAULT, bmp);
-	else
-		setpgreplpol(MPOL_INTERLEAVE, bmp);
+	unsigned long mode;
+
+	if (numa_bitmask_equal(bmp, numa_no_nodes_ptr)) {
+		/* Disable replication */
+		mode = 0;
+	} else {
+		/* Convert bitmask to mode value */
+		mode = bitmask_to_ulong(bmp);
+		if (mode == 0)
+			mode = 1;  /* Enable on all nodes */
+	}
+
+	if (set_pgtblreplpolicy(mode, 0) < 0)
+		numa_error("set_pgtblreplpolicy");
 }
 
 struct bitmask *
 numa_get_pgtable_replication_mask(void)
 {
-	int oldpolicy;
 	struct bitmask *bmp;
+	long result;
+	unsigned int i;
 
 	bmp = numa_allocate_nodemask();
-	getpgreplpol(&oldpolicy, bmp);
-	if (oldpolicy != MPOL_INTERLEAVE)
+	result = get_pgtblreplpolicy(0);
+
+	if (result <= 0) {
+		/* Disabled or error */
 		copy_bitmask_to_bitmask(numa_no_nodes_ptr, bmp);
+	} else {
+		/* Convert result to bitmask */
+		numa_bitmask_clearall(bmp);
+		for (i = 0; i < sizeof(long) * 8 && i < bmp->size; i++) {
+			if (result & (1UL << i))
+				numa_bitmask_setbit(bmp, i);
+		}
+	}
 	return bmp;
+}
+
+int
+numa_set_pgtable_replication_node(int node, pid_t pid)
+{
+	long result = set_pgtblreplprefnode(node, pid);
+	if (result < 0) {
+		numa_error("set_pgtblreplprefnode");
+		return -1;
+	}
+	return 0;
+}
+
+int
+numa_get_pgtable_replication_node(pid_t pid)
+{
+	long result = get_pgtblreplprefnode(pid);
+	if (result < 0 && result != -1) {
+		/* -1 is valid (auto mode), other negatives are errors */
+		numa_error("get_pgtblreplprefnode");
+	}
+	return (int)result;
 }
 
 /* (undocumented) */

@@ -1,5 +1,6 @@
 /* Copyright (C) 2003,2004 Andi Kleen, SuSE Labs.
    Copyright (C) 2018-2019 VMware, Inc.
+   Copyright (C) 2025 Julian Waciewski.
    SPDX-License-Identifier: GPL-2.0
 
    libnuma is free software; you can redistribute it and/or
@@ -28,7 +29,8 @@
 #if !defined(__NR_mbind) || !defined(__NR_set_mempolicy) || \
     !defined(__NR_get_mempolicy) || !defined(__NR_migrate_pages) || \
     !defined(__NR_move_pages) || !defined(__NR_set_pgtblreplpolicy) || \
-    !defined(__NR_get_pgtblreplpolicy)
+    !defined(__NR_get_pgtblreplpolicy) || !defined(__NR_set_pgtblreplprefnode) || \
+    !defined(__NR_get_pgtblreplprefnode)
 
 #if defined(__x86_64__)
 
@@ -43,11 +45,13 @@
 #define __NR_migrate_pages 256
 #define __NR_move_pages 279
 #define __NR_set_pgtblreplpolicy 400
-#define __NR_get_pgtblreplpolicy 401    
+#define __NR_get_pgtblreplpolicy 401
+#define __NR_set_pgtblreplprefnode 402
+#define __NR_get_pgtblreplprefnode 403
 
 #elif defined(__ia64__)
 
-#error "mitosis error: pgtable replication not implemented for this architecture"
+#error "WASP error: pgtable replication not implemented for this architecture"
 
 #define __NR_sched_setaffinity    1231
 #define __NR_sched_getaffinity    1232
@@ -72,7 +76,7 @@
 
 #elif defined(__powerpc__)
 
-#error "mitosis error: pgtable replication not implemented for this architecture"
+#error "WASP error: pgtable replication not implemented for this architecture"
 
 #define __NR_mbind 259
 #define __NR_get_mempolicy 260
@@ -84,7 +88,7 @@
 
 #elif defined(__mips__)
 
-#error "mitosis error: pgtable replication not implemented for this architecture"    
+#error "WASP error: pgtable replication not implemented for this architecture"    
 
 #if _MIPS_SIM == _ABIO32
 /*
@@ -125,14 +129,14 @@
 
 #elif defined(__arm__)
 
-#error "mitosis error: pgtable replication not implemented for this architecture"
+#error "WASP error: pgtable replication not implemented for this architecture"
 
 /* https://bugs.debian.org/796802 */
 #warning "ARM does not implement the migrate_pages() syscall"
 
 #elif defined(__s390x__)
 
-#error "mitosis error: pgtable replication not implemented for this architecture"
+#error "WASP error: pgtable replication not implemented for this architecture"
 
 #define __NR_mbind 235
 #define __NR_get_mempolicy 236
@@ -216,22 +220,25 @@ long syscall6(long call, long a, long b, long c, long d, long e, long f)
 #define syscall6 syscall
 #endif
 
-long WEAK get_pgreplpolicy(int *policy, unsigned long *nmask,
-        unsigned long maxnode, void *addr,
-        unsigned flags)
+long WEAK set_pgtblreplpolicy(unsigned long mode, pid_t pid)
 {
-  return syscall(__NR_get_pgtblreplpolicy, policy, nmask,
-          maxnode, addr, flags);
+    return syscall(__NR_set_pgtblreplpolicy, mode, pid);
 }
 
-long WEAK set_pgreplpolicy(int mode, const unsigned long *nmask,
-                                   unsigned long maxnode)
+long WEAK get_pgtblreplpolicy(pid_t pid)
 {
-  long i;
-  i = syscall(__NR_set_pgtblreplpolicy,mode,nmask,maxnode);
-  return i;
+    return syscall(__NR_get_pgtblreplpolicy, pid);
 }
 
+long WEAK set_pgtblreplprefnode(int node, pid_t pid)
+{
+    return syscall(__NR_set_pgtblreplprefnode, node, pid);
+}
+
+long WEAK get_pgtblreplprefnode(pid_t pid)
+{
+    return syscall(__NR_get_pgtblreplprefnode, pid);
+}
 
 long WEAK get_mempolicy(int *policy, unsigned long *nmask,
 				unsigned long maxnode, void *addr,

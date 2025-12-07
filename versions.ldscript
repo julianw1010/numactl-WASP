@@ -147,7 +147,7 @@ libnuma_1.4 {
     *;
 } libnuma_1.3;
 
-# Mitosis: New interface with pgtable replication
+# WASP: New interface with pgtable replication
 # was added into version 1.5
 libnuma_1.5 {
   global:
@@ -156,3 +156,13 @@ libnuma_1.5 {
   local:
     *;
 } libnuma_1.4;
+
+# WASP: Per-thread node selection for page table replication
+# was added into version 1.6
+libnuma_1.6 {
+  global:
+    numa_set_pgtable_replication_node;
+    numa_get_pgtable_replication_node;
+  local:
+    *;
+} libnuma_1.5;

@@ -1,6 +1,8 @@
-# mitosis-numactl
+# numactl-WASP
 
-Version 2.0.10-mitosis Copyright (C) 2018-2019 VMware, Inc.
+Version 2.0.10-wasp
+Copyright (C) 2018-2019 VMware, Inc.
+Copyright (C) 2025 Julian Waciewski
 SPDX-License-Identifier: LGPL-2.1-only
 
 This project contains a modified [`numactl`](https://github.com/numactl/numactl) 
@@ -8,7 +10,7 @@ implementation that adds support for controlling the page table allocation
 policies of processes in addition to changing NUMA allocation policies. 
 
 # Requirements
-To run this software, Linux must be configured with the Mitosis extension enabled.
+To run this software, Linux must be configured with the WASP page table replication extension enabled.
 
 # numatl
 

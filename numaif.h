@@ -1,4 +1,5 @@
 /* Copyright (C) 2018-2019 VMware, Inc.
+   Copyright (C) 2025 Julian Waciewski.
    SPDX-License-Identifier: GPL-2.0
 
    libnuma is free software; you can redistribute it and/or
@@ -22,13 +23,15 @@
 extern "C" {
 #endif
 
+#include <sys/types.h>  /* for pid_t */
+
 /* Kernel interface for NUMA API */
 
 /* System calls */
-extern long get_pgreplpolicy(int *mode, unsigned long *nmask,
-			unsigned long maxnode, void *addr, unsigned flags);
-extern long set_pgreplpolicy(int mode, const unsigned long *nmask,
-			  unsigned long maxnode);	
+extern long set_pgtblreplpolicy(unsigned long mode, pid_t pid);
+extern long get_pgtblreplpolicy(pid_t pid);
+extern long set_pgtblreplprefnode(int node, pid_t pid);
+extern long get_pgtblreplprefnode(pid_t pid);
 extern long get_mempolicy(int *mode, unsigned long *nmask,
 			unsigned long maxnode, void *addr, unsigned flags);
 extern long mbind(void *start, unsigned long len, int mode,

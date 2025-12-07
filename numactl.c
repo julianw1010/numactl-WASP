@@ -1,5 +1,6 @@
 /* Copyright (C) 2003,2004,2005 Andi Kleen, SuSE Labs.
    Copyright (C) 2018-2019 VMware, Inc.
+   Copyright (C) 2025 Julian Waciewski.
    SPDX-License-Identifier: GPL-2.0
    
    Command line NUMA policy control.
@@ -49,7 +50,7 @@ struct option opts[] = {
 	{"localalloc", 0,0, 'l'},
 	{"hardware", 0,0,'H' },
 	{"pgtablerepl", 1, 0, 'r' },
-
+        {"pgtablerepl-node", 1, 0, 'R' },
 	{"shm", 1, 0, 'S'},
 	{"file", 1, 0, 'f'},
 	{"offset", 1, 0, 'o'},
@@ -71,6 +72,7 @@ void usage(void)
 		"usage: numactl [--all | -a] [--interleave= | -i <nodes>] [--preferred= | -p <node>]\n"
 		"               [--physcpubind= | -C <cpus>] [--cpunodebind= | -N <nodes>]\n"
 		"               [--pgtablerepl= | -r <nodes>] \n"
+		"               [--pgtablerepl-node= | -R <node>] \n"
 		"               [--membind= | -m <nodes>] [--localalloc | -l] command args ...\n"
 		"       numactl [--show | -s]\n"
 		"       numactl [--hardware | -H]\n"
@@ -472,7 +474,19 @@ int main(int ac, char **av)
 			did_node_cpu_parse = 1;
 			numa_set_pgtable_replication_mask(mask);
 			checkerror("Error while setting pgtable replication mask");
-			break;						
+			break;	
+		case 'R': /* --pgtablerepl-node */
+			{
+				int node = atoi(optarg);
+				if (node < -1) {
+					printf("Invalid node: %s (use -1 for auto or node number)\n", optarg);
+					usage();
+				}
+				if (numa_set_pgtable_replication_node(node, 0) < 0) {
+					numa_error("setting pgtable replication node");
+				}
+			}
+			break;
 		case 'N': /* --cpunodebind */
 		case 'c': /* --cpubind */
 			dontshm("-c/--cpubind/--cpunodebind");
