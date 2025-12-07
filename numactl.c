@@ -477,11 +477,35 @@ int main(int ac, char **av)
 			break;	
 		case 'R': /* --pgtablerepl-node */
 			{
-				int node = atoi(optarg);
-				if (node < -1) {
-					printf("Invalid node: %s (use -1 for auto or node number)\n", optarg);
+				int node;
+				char *end;
+
+				/* Parse integer with validation */
+				errno = 0;
+				node = strtol(optarg, &end, 10);
+				if (errno != 0 || *end != '\0' || end == optarg) {
+					printf("Invalid node argument: '%s' (must be an integer)\n", optarg);
 					usage();
 				}
+
+				/* Check valid range */
+				if (node < -1) {
+					printf("Invalid node: %d (use -1 for auto or node number >= 0)\n", node);
+					usage();
+				}
+
+				/* Check node exists */
+				if (node >= 0 && node > numa_max_node()) {
+					printf("Node %d does not exist (max node is %d)\n", node, numa_max_node());
+					usage();
+				}
+
+				/* Check node is online */
+				if (node >= 0 && !numa_bitmask_isbitset(numa_all_nodes_ptr, node)) {
+					printf("Node %d is not online\n", node);
+					usage();
+				}
+
 				if (numa_set_pgtable_replication_node(node, 0) < 0) {
 					numa_error("setting pgtable replication node");
 				}
