@@ -20,17 +20,30 @@
 #include <sys/types.h>
 #include <asm/unistd.h>
 #include <errno.h>
+#include <sys/prctl.h>
 #include "numa.h"
 #include "numaif.h"
 #include "numaint.h"
+
+/* Page table replication prctl constants (from linux/prctl.h) */
+#ifndef PR_SET_PGTABLE_REPL
+#define PR_SET_PGTABLE_REPL         100
+#endif
+#ifndef PR_GET_PGTABLE_REPL
+#define PR_GET_PGTABLE_REPL         101
+#endif
+#ifndef PR_SET_PGTABLE_REPL_NODE
+#define PR_SET_PGTABLE_REPL_NODE    102
+#endif
+#ifndef PR_GET_PGTABLE_REPL_NODE
+#define PR_GET_PGTABLE_REPL_NODE    103
+#endif
 
 #define WEAK __attribute__((weak))
 
 #if !defined(__NR_mbind) || !defined(__NR_set_mempolicy) || \
     !defined(__NR_get_mempolicy) || !defined(__NR_migrate_pages) || \
-    !defined(__NR_move_pages) || !defined(__NR_set_pgtblreplpolicy) || \
-    !defined(__NR_get_pgtblreplpolicy) || !defined(__NR_set_pgtblreplprefnode) || \
-    !defined(__NR_get_pgtblreplprefnode)
+    !defined(__NR_move_pages)
 
 #if defined(__x86_64__)
 
@@ -44,14 +57,8 @@
 #define __NR_get_mempolicy 239
 #define __NR_migrate_pages 256
 #define __NR_move_pages 279
-#define __NR_set_pgtblreplpolicy 400
-#define __NR_get_pgtblreplpolicy 401
-#define __NR_set_pgtblreplprefnode 402
-#define __NR_get_pgtblreplprefnode 403
 
 #elif defined(__ia64__)
-
-#error "WASP error: pgtable replication not implemented for this architecture"
 
 #define __NR_sched_setaffinity    1231
 #define __NR_sched_getaffinity    1232
@@ -71,12 +78,8 @@
 #define __NR_set_mempolicy 276
 #define __NR_migrate_pages 294
 #define __NR_move_pages 317
-#define __NR_set_pgtblreplpolicy 400
-#define __NR_get_pgtblreplpolicy 401
 
 #elif defined(__powerpc__)
-
-#error "WASP error: pgtable replication not implemented for this architecture"
 
 #define __NR_mbind 259
 #define __NR_get_mempolicy 260
@@ -87,8 +90,6 @@
 */
 
 #elif defined(__mips__)
-
-#error "WASP error: pgtable replication not implemented for this architecture"    
 
 #if _MIPS_SIM == _ABIO32
 /*
@@ -129,14 +130,10 @@
 
 #elif defined(__arm__)
 
-#error "WASP error: pgtable replication not implemented for this architecture"
-
 /* https://bugs.debian.org/796802 */
 #warning "ARM does not implement the migrate_pages() syscall"
 
 #elif defined(__s390x__)
-
-#error "WASP error: pgtable replication not implemented for this architecture"
 
 #define __NR_mbind 235
 #define __NR_get_mempolicy 236
@@ -220,24 +217,25 @@ long syscall6(long call, long a, long b, long c, long d, long e, long f)
 #define syscall6 syscall
 #endif
 
+/* Page table replication uses prctl, not direct syscalls */
 long WEAK set_pgtblreplpolicy(unsigned long mode, pid_t pid)
 {
-    return syscall(__NR_set_pgtblreplpolicy, mode, pid);
+    return prctl(PR_SET_PGTABLE_REPL, mode, (unsigned long)pid, 0, 0);
 }
 
 long WEAK get_pgtblreplpolicy(pid_t pid)
 {
-    return syscall(__NR_get_pgtblreplpolicy, pid);
+    return prctl(PR_GET_PGTABLE_REPL, (unsigned long)pid, 0, 0, 0);
 }
 
 long WEAK set_pgtblreplprefnode(int node, pid_t pid)
 {
-    return syscall(__NR_set_pgtblreplprefnode, node, pid);
+    return prctl(PR_SET_PGTABLE_REPL_NODE, (unsigned long)node, (unsigned long)pid, 0, 0);
 }
 
 long WEAK get_pgtblreplprefnode(pid_t pid)
 {
-    return syscall(__NR_get_pgtblreplprefnode, pid);
+    return prctl(PR_GET_PGTABLE_REPL_NODE, (unsigned long)pid, 0, 0, 0);
 }
 
 long WEAK get_mempolicy(int *policy, unsigned long *nmask,
