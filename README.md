@@ -1,6 +1,6 @@
 # numactl-WASP
 
-A fork of [numactl](https://github.com/numactl/numactl) that adds command-line support for Mitosis page table replication and NUMA-aware page table cache allocation. It requires a Linux kernel patched with Mitosis support.
+A fork of [numactl](https://github.com/numactl/numactl) that adds command-line support for Mitosis page table replication and NUMA-aware page table cache allocation. It requires the [WASP Mitosis kernel](https://github.com/julianw1010/WASP-linux-6.4.0).
 
 ## Building
 
