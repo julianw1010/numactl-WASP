@@ -305,66 +305,22 @@ static void getpol(int *oldpolicy, struct bitmask *bmp)
 		numa_error("get_mempolicy");
 }
 
-static void setpgreplpol(int policy, struct bitmask *bmp)
- {
-    unsigned long mask_val = 0;
+static void setpgreplpol(void)
+{
+	if (prctl(PR_SET_PGTABLE_REPL, 1, 0, 0, 0) < 0)
+		numa_error("prctl(PR_SET_PGTABLE_REPL)");
+}
 
-    if (policy == MPOL_DEFAULT) {
-        // This is how numa_set_pgtable_replication_mask signals "disable"
-        // This corresponds to arg2 == 0 (disable)
-        mask_val = 0;
-    } else {
-        // Check if the user passed "all"
-        // '1' means "all nodes" to the prctl
-        if (numa_bitmask_equal(bmp, numa_all_nodes_ptr) ||
-            numa_bitmask_equal(bmp, numa_possible_nodes_ptr)) {
-            mask_val = 1;
-        } else {
-            // Convert the bitmask to a single unsigned long.
-            // This is a limitation of the prctl interface from mitosisnewdiff.txt
-            if (bmp->size > (sizeof(unsigned long) * 8)) {
-                numa_warn(0, "Node mask for pgtable replication truncated to 64 bits for prctl interface");
-            }
-            if (bmp->maskp) {
-                 mask_val = bmp->maskp[0];
-            }
+static int getpgreplpol(void)
+{
+	int enabled = prctl(PR_GET_PGTABLE_REPL, 0, 0, 0, 0);
 
-            if (mask_val == 0) {
-                 numa_warn(0, "Empty or invalid node mask passed to pgtable replication, disabling.");
-            } else if (mask_val == 1) {
-                 // This means the user explicitly passed node "0"
-                 // The kernel prctl will interpret this as "all nodes".
-                 numa_warn(0, "Mask '1' (node 0) is interpreted as 'all nodes' by this kernel's prctl interface.");
-            }
-        }
-    }
-
-    if (prctl(PR_SET_PGTABLE_REPL, mask_val, 0, 0, 0) < 0)
-        numa_error("prctl(PR_SET_PGTABLE_REPL)");
- }
-
-static void getpgreplpol(int *oldpolicy, struct bitmask *bmp)
- {
-    long mask_val = prctl(PR_GET_PGTABLE_REPL, 0, 0, 0, 0);
-    if (mask_val < 0) {
-        numa_error("prctl(PR_GET_PGTABLE_REPL)");
-        *oldpolicy = MPOL_DEFAULT;
-        numa_bitmask_clearall(bmp);
-        return;
-    }
-
-    numa_bitmask_clearall(bmp);
-    if (mask_val == 0) {
-        *oldpolicy = MPOL_DEFAULT;
-    } else if (mask_val == 1) {
-        *oldpolicy = MPOL_INTERLEAVE; // numactl convention for "on"
-        copy_bitmask_to_bitmask(numa_all_nodes_ptr, bmp); // Show 'all'
-    } else {
-        *oldpolicy = MPOL_INTERLEAVE;
-        if (bmp->maskp)
-            bmp->maskp[0] = (unsigned long)mask_val;
-    }
- }
+	if (enabled < 0) {
+		numa_error("prctl(PR_GET_PGTABLE_REPL)");
+		return 0;
+	}
+	return enabled;
+}
 
 static void dombind(void *mem, size_t size, int pol, struct bitmask *bmp)
 {
@@ -1063,12 +1019,9 @@ numa_get_interleave_mask_v2(void)
 __asm__(".symver numa_get_interleave_mask_v2,numa_get_interleave_mask@@libnuma_1.2");
 
 void
-numa_set_pgtable_replication_mask(struct bitmask *bmp)
+numa_set_pgtable_replication(void)
 {
-	if (numa_bitmask_equal(bmp, numa_no_nodes_ptr))
-		setpgreplpol(MPOL_DEFAULT, bmp);
-	else
-		setpgreplpol(MPOL_INTERLEAVE, bmp);
+	setpgreplpol();
 }
 
 void numa_set_pgtable_cache_mode(int enable)
@@ -1077,17 +1030,10 @@ void numa_set_pgtable_cache_mode(int enable)
         numa_error("prctl(PR_SET_PGTABLE_CACHE_ONLY)");
 }
 
-struct bitmask *
-numa_get_pgtable_replication_mask(void)
+int
+numa_get_pgtable_replication(void)
 {
-	int oldpolicy;
-	struct bitmask *bmp;
-
-	bmp = numa_allocate_nodemask();
-	getpgreplpol(&oldpolicy, bmp);
-	if (oldpolicy != MPOL_INTERLEAVE)
-		copy_bitmask_to_bitmask(numa_no_nodes_ptr, bmp);
-	return bmp;
+	return getpgreplpol();
 }
 
 /* (undocumented) */

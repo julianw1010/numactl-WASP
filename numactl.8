@@ -30,7 +30,7 @@ numactl \- Control NUMA policy for processes or shared memory with Mitosis Linux
 ] [
 .B \-\-preferred node 
 ] [
-.B \-\-pgtablerepl nodes
+.B \-\-pgtablerepl
 ] [
 .B \-\-membind nodes
 ] [ 
@@ -124,11 +124,15 @@ When memory cannot be allocated on the current interleave target fall back
 to other nodes.
 Multiple nodes may be specified on --interleave, --membind and --cpunodebind.
 .TP
-.B \-\-pgtablerepl=nodes, \-r nodes
-Set a page-table replication policy. 
-.I nodes.
-When memory cannot be allocated on the current replication node target fall back
-to other nodes.
+.B \-\-pgtablerepl, \-r
+Enable page-table replication for the process. The kernel replicates the page
+tables on every online NUMA node; there is no way to select a subset of nodes.
+Replication is inherited across
+.BR fork (2)
+when
+.I /proc/mitosis/inherit
+is 1 (the default), and survives
+.BR execve (2).
 .TP
 .B \-\-membind=nodes, \-m nodes
 Only allocate memory from nodes.  Allocation will fail when there
@@ -280,7 +284,7 @@ Run myapplic on cpus 0-4 and 8-12 of the current cpuset.
 numactl \-\-interleave=all bigdatabase arguments
 Run big database with its memory interleaved on all CPUs.
 
-numactl \-\-pgtablerepl=all bigdatabase arguments
+numactl \-\-pgtablerepl bigdatabase arguments
 Run big database with page-table replication on all NUMA nodes.
 
 numactl \-\-cpunodebind=0 \-\-membind=0,1 process

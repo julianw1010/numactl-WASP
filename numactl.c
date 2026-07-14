@@ -49,7 +49,7 @@ struct option opts[] = {
 	{"show", 0, 0, 's' },
 	{"localalloc", 0,0, 'l'},
 	{"hardware", 0,0,'H' },
-	{"pgtablerepl", 1, 0, 'r' },
+	{"pgtablerepl", 0, 0, 'r' },
 	{"pgtablecache", 0, 0, 'P'},
 
 	{"shm", 1, 0, 'S'},
@@ -73,7 +73,7 @@ void usage(void)
 		"usage: numactl [--all | -a] [--interleave= | -i <nodes>] [--preferred= | -p <node>]\n"
 	        "               [--preferred-order= | -O <nodes>]\n"
 		"               [--physcpubind= | -C <cpus>] [--cpunodebind= | -N <nodes>]\n"
-		"               [--pgtablerepl= | -r <nodes>] \n"
+		"               [--pgtablerepl | -r] \n"
 		"               [--pgtablecache | -P]\n"
 		"               [--membind= | -m <nodes>] [--localalloc | -l] command args ...\n"
 		"       numactl [--show | -s]\n"
@@ -430,7 +430,7 @@ int main(int ac, char **av)
 	char *end;
 	char shortopts[array_len(opts)*2 + 1];
 	struct bitmask *mask = NULL;
-	struct bitmask *pgtablerepl_mask = NULL;
+        int pgtablerepl_mode = 0;
         int pgtablecache_mode = 0;
 
 	get_short_opts(opts,shortopts);
@@ -465,19 +465,8 @@ int main(int ac, char **av)
 			break;
 		case 'r': /* --pgtablerepl */
 			checknuma();
-			if (parse_all)
-				mask = numactl_parse_nodestring(optarg, ALL);
-			else
-				mask = numactl_parse_nodestring(optarg, CPUSET);
-			if (!mask) {
-				printf ("<%s> is invalid\n", optarg);
-				usage();
-			}
-
-			errno = 0;
-			did_node_cpu_parse = 1;
-                        pgtablerepl_mask = mask;
-			break;	
+			pgtablerepl_mode = 1;
+			break;
 		case 'P': /* --pgtablecache */
 	                pgtablecache_mode = 1;
 	                break;
@@ -711,9 +700,9 @@ int main(int ac, char **av)
 		usage();
 
         // Apply policies only after we are sure we have a command.
-        if (pgtablerepl_mask) {
-            numa_set_pgtable_replication_mask(pgtablerepl_mask);
-            checkerror("Error while setting pgtable replication mask");
+        if (pgtablerepl_mode) {
+            numa_set_pgtable_replication();
+            checkerror("Error while enabling pgtable replication");
         }
         
         if (pgtablecache_mode) {
